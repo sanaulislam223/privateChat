@@ -195,3 +195,24 @@ video {
     background: #ff4b6e; color: white; border: none;
     width: 100%; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;
 }
+
+.header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.logout-button {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.logout-button:hover {
+    background: #ffffff !important;
+    color: #ff4b6e !important;
+}
