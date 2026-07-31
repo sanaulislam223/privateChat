@@ -1,26 +1,28 @@
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
+
+// CORS Policy ko poori tarah open karne ke liye yeh configuration zaroori hai
 const io = require('socket.io')(http, {
-    cors: { origin: "*" }
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"],
+        credentials: true
+    },
+    transports: ['websocket', 'polling']
 });
 
 app.use(express.static('public'));
 
 io.on('connection', (socket) => {
-    console.log('Ek user connect hua:', socket.id);
+    console.log('User connected:', socket.id);
 
-    // Jab koi message bheje, toh server use SABHI ko deliver karega
     socket.on('chat-message', (data) => {
         io.emit('chat-message', data); 
     });
 
     socket.on('webrtc-signal', (data) => {
         socket.broadcast.emit('webrtc-signal', data);
-    });
-
-    socket.on('disconnect', () => {
-        console.log('User disconnect hua:', socket.id);
     });
 });
 
