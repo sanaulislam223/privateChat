@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Private Space</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>💖 Private Chat</h2>
+            <button id="call-btn">📞 Call</button>
+        </div>
+        
+        <div id="chat-messages" class="chat-messages"></div>
+        
+        <div class="video-container" id="video-container" style="display: none;">
+            <video id="localVideo" autoplay playsinline muted></video>
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+
+        <div class="chat-input-area">
+            <label for="image-input" class="image-label">📷</label>
+            <input type="file" id="image-input" accept="image/*" style="display: none;">
+            <input type="text" id="message-input" placeholder="Type a message...">
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
+
+    <!-- Socket.io aur main script files -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
