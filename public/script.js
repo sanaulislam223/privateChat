@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io('https://onrender.com');
 
 // HTML Elements ko connect karna
 const messageInput = document.getElementById('message-input');
