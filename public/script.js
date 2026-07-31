@@ -1,4 +1,8 @@
-const socket = io('https://onrender.com');
+// Isse browser automatic usi domain aur protocol (HTTPS) ko target karega jahan website live hai
+const socket = io({
+    transports: ['websocket', 'polling']
+});
+
 
 // Elements
 const loginBox = document.getElementById('login-box');
