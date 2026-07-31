@@ -43,7 +43,7 @@ loginButton.addEventListener('click', () => {
     const user = usernameInput.value.trim().toLowerCase();
     const pass = passwordInput.value.trim();
 
-    if ((user === "sanaul" && pass === "love123") || (user === "girlfriend" && pass === "love123")) {
+    if ((user === "sanaul" && pass === "love123") || (user === "friend" && pass === "love123")) {
         localStorage.setItem('chat_username', user); // Browser me save karlo
         startChatSession(user);
     } else {
