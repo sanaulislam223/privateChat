@@ -23,7 +23,7 @@ let localStream;
 let peerConnection;
 const config = { iceServers: [{ urls: 'stun:://google.com' }] };
 
-// 🔄 AUTO LOGIN CHECK (Refresh par password na mange)
+// 🔄 REFRESH FIXED (Baar-baar login nahi mangega jab tak khud logout na karein)
 window.addEventListener('load', () => {
     const savedUser = localStorage.getItem('chat_username');
     if (savedUser) {
@@ -38,26 +38,26 @@ function startChatSession(user) {
     chatBox.style.display = 'flex';
 }
 
-// 🔒 LOGIN BUTTON LOGIC
+// 🔒 LOGIN
 loginButton.addEventListener('click', () => {
     const user = usernameInput.value.trim().toLowerCase();
     const pass = passwordInput.value.trim();
 
-    if ((user === "sanaul" && pass === "love123") || (user === "friend" && pass === "love123")) {
-        localStorage.setItem('chat_username', user); // Browser me save karlo
+    if ((user === "sanaul" && pass === "love123") || (user === "girlfriend" && pass === "love123")) {
+        localStorage.setItem('chat_username', user); 
         startChatSession(user);
     } else {
         loginError.style.display = 'block';
     }
 });
 
-// 🚪 LOGOUT BUTTON LOGIC (Aapke click karne par hi logout hoga)
+// 🚪 LOGOUT (Sirf aapke click karne par hi logout hoga)
 logoutButton.addEventListener('click', () => {
-    localStorage.removeItem('chat_username'); // Storage clear karein
-    window.location.reload(); // Page refresh karke login par le jayein
+    localStorage.removeItem('chat_username');
+    window.location.reload();
 });
 
-// 📩 MESSAGE SEND
+// 📩 SEND MESSAGE
 sendButton.addEventListener('click', () => {
     const message = messageInput.value.trim();
     if (message) {
@@ -70,7 +70,7 @@ messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendButton.click();
 });
 
-// 📷 IMAGE SEND (Base64 conversion for safety)
+// 📷 SEND IMAGE
 imageInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -82,7 +82,7 @@ imageInput.addEventListener('change', (e) => {
     }
 });
 
-// 📥 INCOMING MESSAGES & NOTIFICATION AUDIO
+// 📥 RECEIVE DATA AND SOUND ALERT
 socket.on('chat-message', (data) => {
     const status = (data.sender === currentUsername) ? 'sent' : 'received';
     const displayName = (data.sender === currentUsername) ? 'You' : data.sender;
@@ -93,9 +93,9 @@ socket.on('chat-message', (data) => {
         appendImage(displayName, data.imageData, status);
     }
 
-    // Agar message saamne wale ka hai, toh sweet audio sound play hoga
+    // Alert Sound Alert for incoming messages
     if (data.sender !== currentUsername) {
-        notifSound.play().catch(e => console.log("Audio play blocked by browser interaction rules."));
+        notifSound.play().catch(e => console.log("Sound play interaction rule block."));
     }
 });
 
@@ -115,7 +115,7 @@ function appendImage(sender, src, status) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// 📞 WEBRTC VIDEO CALLING LOGIC (Fixed for secure mobile cross-origin connection)
+// 📞 WEBRTC VIDEO CALLING INTEGRATION
 const callButton = document.getElementById('call-btn');
 const videoContainer = document.getElementById('video-container');
 const localVideo = document.getElementById('localVideo');
@@ -144,7 +144,7 @@ async function initWebRTC(isCaller) {
             socket.emit('webrtc-signal', { offer: offer });
         }
     } catch (err) {
-        alert("Camera aur Microphone access allow karein tabhi video call ho payegi!");
+        alert("Video Calling ke liye Camera aur Microphone Permission 'Allow' karna compulsory hai!");
     }
 }
 
@@ -154,7 +154,7 @@ callButton.addEventListener('click', () => {
 
 socket.on('webrtc-signal', async (data) => {
     if (data.offer) {
-        const acceptCall = confirm("Partner video call kar rahe hain, kya aap receive karna chahte hain?");
+        const acceptCall = confirm("Partner is video calling you. Do you want to answer?");
         if (acceptCall) {
             await initWebRTC(false);
             await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
