@@ -174,3 +174,24 @@ video {
 #send-btn:hover {
     background: #e03858;
 }
+
+
+.login-container {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(255, 75, 110, 0.15);
+    text-align: center;
+    width: 320px;
+}
+.login-container h2 { color: #ff4b6e; margin-bottom: 10px; }
+.login-container p { font-size: 0.85rem; color: #666; margin-bottom: 20px; }
+.login-container input {
+    width: 100%; padding: 12px; margin-bottom: 15px;
+    border: 1px solid #e9ecef; border-radius: 10px; outline: none;
+}
+.login-container input:focus { border-color: #ff4b6e; }
+.login-container button {
+    background: #ff4b6e; color: white; border: none;
+    width: 100%; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;
+}
