@@ -1,57 +1,74 @@
 const socket = io('https://onrender.com');
 
-// HTML Elements ko connect karna
+// Elements
+const loginBox = document.getElementById('login-box');
+const chatBox = document.getElementById('chat-box');
+const usernameInput = document.getElementById('username');
+const passwordInput = document.getElementById('password');
+const loginButton = document.getElementById('login-btn');
+const loginError = document.getElementById('login-error');
+
 const messageInput = document.getElementById('message-input');
 const sendButton = document.getElementById('send-btn');
 const chatMessages = document.getElementById('chat-messages');
 const imageInput = document.getElementById('image-input');
-const callButton = document.getElementById('call-btn');
-const videoContainer = document.getElementById('video-container');
-const localVideo = document.getElementById('localVideo');
-const remoteVideo = document.getElementById('remoteVideo');
+const userDisplay = document.getElementById('user-display');
 
-let localStream;
-let peerConnection;
-const config = { iceServers: [{ urls: 'stun:://google.com' }] };
+let currentUsername = "";
 
-// 1. Text Message Bhejna
+// 🔒 LOGIN VALIDATION (Yahan aap apna Password change kar sakte hain)
+loginButton.addEventListener('click', () => {
+    const user = usernameInput.value.trim();
+    const pass = passwordInput.value.trim();
+
+    // Aap dono ke fixed username/password (Aap ise badal sakte hain)
+    if ((user === "sanaul" && pass === "love123") || (user === "girlfriend" && pass === "love123")) {
+        currentUsername = user;
+        userDisplay.innerText = `💖 Hi ${user}`;
+        loginBox.style.display = 'none';
+        chatBox.style.display = 'flex'; // Chat screen khul jayegi
+    } else {
+        loginError.style.display = 'block';
+    }
+});
+
+// 📩 MESSAGE DELIVERY
 sendButton.addEventListener('click', () => {
     const message = messageInput.value.trim();
     if (message) {
-        socket.emit('chat-message', { type: 'text', text: message });
-        appendMessage('You', message, 'sent');
+        // Server ko sender ke naam ke sath message bhejna
+        socket.emit('chat-message', { type: 'text', sender: currentUsername, text: message });
         messageInput.value = '';
     }
 });
 
-// Enter key se bhi message send ho jaye
 messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendButton.click();
 });
 
-// 2. Image Bhejna
 imageInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = function(event) {
-            socket.emit('chat-message', { type: 'image', imageData: event.target.result });
-            appendImage('You', event.target.result, 'sent');
+            socket.emit('chat-message', { type: 'image', sender: currentUsername, imageData: event.target.result });
         };
         reader.readAsDataURL(file);
     }
 });
 
-// Server se aane wale messages/images ko receive karna
+// Server se aane wale messages ko sahi side fit karna
 socket.on('chat-message', (data) => {
+    const status = (data.sender === currentUsername) ? 'sent' : 'received';
+    const displayName = (data.sender === currentUsername) ? 'You' : data.sender;
+
     if (data.type === 'text') {
-        appendMessage('Partner', data.text, 'received');
+        appendMessage(displayName, data.text, status);
     } else if (data.type === 'image') {
-        appendImage('Partner', data.imageData, 'received');
+        appendImage(displayName, data.imageData, status);
     }
 });
 
-// Screen par Text message jodne ka function
 function appendMessage(sender, text, status) {
     const msgDiv = document.createElement('div');
     msgDiv.classList.add('message', status);
@@ -60,7 +77,6 @@ function appendMessage(sender, text, status) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// Screen par Image jodne ka function
 function appendImage(sender, src, status) {
     const msgDiv = document.createElement('div');
     msgDiv.classList.add('message', status);
@@ -68,54 +84,3 @@ function appendImage(sender, src, status) {
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
-
-// 3. WebRTC Video Calling Logic
-callButton.addEventListener('click', async () => {
-    videoContainer.style.display = 'grid';
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    localVideo.srcObject = localStream;
-
-    peerConnection = new RTCPeerConnection(config);
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-    peerConnection.onicecandidate = (e) => {
-        if (e.candidate) socket.emit('webrtc-signal', { candidate: e.candidate });
-    };
-
-    peerConnection.ontrack = (e) => {
-        remoteVideo.srcObject = e.streams[0];
-    };
-
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
-    socket.emit('webrtc-signal', { offer: offer });
-});
-
-socket.on('webrtc-signal', async (data) => {
-    if (data.offer) {
-        videoContainer.style.display = 'grid';
-        if (!localStream) {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            localVideo.srcObject = localStream;
-        }
-        peerConnection = new RTCPeerConnection(config);
-        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-        peerConnection.onicecandidate = (e) => {
-            if (e.candidate) socket.emit('webrtc-signal', { candidate: e.candidate });
-        };
-
-        peerConnection.ontrack = (e) => {
-            remoteVideo.srcObject = e.streams[0];
-        };
-
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-        socket.emit('webrtc-signal', { answer: answer });
-    } else if (data.answer) {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-    } else if (data.candidate) {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-    }
-});
