@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Login Form Area -->
+    <!-- 🔒 Login Box -->
     <div id="login-box" class="login-container">
         <h2>💖 Security Lock</h2>
         <p>Sirf authorized log hi enter kar sakte hain.</p>
@@ -17,11 +17,14 @@
         <p id="login-error" style="color: red; display: none; margin-top: 10px;">Galt Details! Phir se try karein.</p>
     </div>
 
-    <!-- Main Chat Window (Pehle se hidden rahegi) -->
+    <!-- 💬 Main Chat Box -->
     <div id="chat-box" class="chat-container" style="display: none;">
         <div class="chat-header">
             <h2 id="user-display">💖 Private Chat</h2>
-            <button id="call-btn">📞 Call</button>
+            <div class="header-buttons">
+                <button id="call-btn">📞 Call</button>
+                <button id="logout-btn" class="logout-button">🚪 Logout</button>
+            </div>
         </div>
         
         <div id="chat-messages" class="chat-messages"></div>
@@ -38,6 +41,9 @@
             <button id="send-btn">Send</button>
         </div>
     </div>
+
+    <!-- 🎵 Notification Sound File Load -->
+    <audio id="notif-sound" src="https://mixkit.co" preload="auto"></audio>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
