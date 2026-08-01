@@ -16,7 +16,7 @@ const userDisplay = document.getElementById('user-display');
 const partnerStatus = document.getElementById('partner-status');
 const clearChatButton = document.getElementById('clear-chat-btn');
 
-// Fullscreen Overlays UI Cache Elements
+// Fullscreen Overlays UI Elements
 const callOverlay = document.getElementById('call-overlay');
 const fullscreenCallerTitle = document.getElementById('fullscreen-caller-title');
 const callStatusLabel = document.getElementById('call-status-label');
@@ -89,7 +89,7 @@ messageInput.addEventListener('keypress', (e) => {
 });
 
 imageInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files;
     if (file) {
         const reader = new FileReader();
         reader.onload = function(event) {
@@ -185,7 +185,7 @@ async function triggerOutgoingCall(type) {
     peerConnection.onicecandidate = (e) => {
         if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, candidate: e.candidate });
     };
-    peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams[0]; };
+    peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams; };
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
@@ -209,7 +209,7 @@ socket.on('webrtc-signal', async (data) => {
         callOverlay.style.display = 'flex';
         fullscreenCallerTitle.innerText = data.sender.toUpperCase();
         callStatusLabel.innerText = `Incoming ${data.callType} call...`;
-        endCallBtn.className = "control-circle active-green";
+        endCallBtn.className = "control-circle active-green"; // Receive karne ke liye green button
         ringtoneSound.play().catch(e => {});
         window.incomingOfferDetails = data.offer;
     } else if (data.answer) {
@@ -222,8 +222,10 @@ socket.on('webrtc-signal', async (data) => {
     }
 });
 
+// FIX: Call Cut karne aur receive karne ka solid fix
 endCallBtn.addEventListener('click', async () => {
     if (!callActiveSession && endCallBtn.classList.contains('active-green')) {
+        // Agar call aa rahi hai aur green dabaya toh connect karein
         endCallBtn.className = "control-circle reject-red-btn";
         ringtoneSound.pause(); ringtoneSound.currentTime = 0;
         callStatusLabel.innerText = "Connecting...";
@@ -239,7 +241,7 @@ endCallBtn.addEventListener('click', async () => {
         peerConnection.onicecandidate = (e) => {
             if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, candidate: e.candidate });
         };
-        peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams[0]; };
+        peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams; };
 
         await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOfferDetails));
         const answer = await peerConnection.createAnswer();
@@ -247,9 +249,3 @@ endCallBtn.addEventListener('click', async () => {
         socket.emit('webrtc-signal', { sender: currentUsername, answer: answer });
         callStatusLabel.innerText = "Connected";
         callActiveSession = true;
-    } else {
-        socket.emit('call-ended', { sender: currentUsername });
-        terminateCallEngine();
-    }
-});
-
