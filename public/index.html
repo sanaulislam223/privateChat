@@ -2,60 +2,71 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Our Private Space</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Our Ultimate Private Space</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- 🔒 Login Box -->
+    <!-- 🔒 Security Login Box Layer Frame -->
     <div id="login-box" class="login-container">
-        <h2>💖 Security Lock</h2>
-        <p>Sirf authorized log hi enter kar sakte hain.</p>
+        <h2>💖 Private Space Lock</h2>
+        <p>Enter credentials to access private chat room.</p>
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
         <button id="login-btn">Unlock Space</button>
-        <p id="login-error" style="color: red; display: none; margin-top: 10px;">Galt Details! Phir se try karein.</p>
+        <p id="login-error" style="color: red; display: none; margin-top: 10px;">Invalid Details!</p>
     </div>
 
-    <!-- 📞 Custom Incoming Call Alert Modal (Bohot Zaroori) -->
-    <div id="incoming-call-modal" class="call-modal" style="display: none;">
-        <div class="modal-content">
-            <div class="heart-pulse">💖</div>
-            <h3>Incoming Video Call...</h3>
-            <p id="caller-name">Partner is calling you</p>
-            <div class="modal-buttons">
-                <button id="accept-call-btn" class="btn-accept">✅ Answer</button>
-                <button id="reject-call-btn" class="btn-reject">❌ Reject</button>
+    <!-- 📞 Fullscreen Call Window Overlays (WhatsApp Style Native UI Layout) -->
+    <div id="call-overlay" class="call-overlay" style="display: none;">
+        <div class="call-background"></div>
+        <div class="call-content-ui">
+            <div class="caller-avatar-zone">
+                <div class="pulse-avatar">💖</div>
+                <h2 id="fullscreen-caller-title">Partner Name</h2>
+                <p id="call-status-label">Ringing...</p>
+            </div>
+            
+            <!-- Dual Camera Elements Framework Window Grid -->
+            <div id="fullscreen-video-grid" class="fullscreen-video-grid" style="display: none;">
+                <video id="remoteVideo" autoplay playsinline></video>
+                <video id="localVideo" autoplay playsinline muted class="pip-local-video"></video>
+            </div>
+
+            <!-- Call Tray Overlay Settings Buttons Grid Area Row -->
+            <div class="call-controls-tray">
+                <button id="toggle-mic-btn" class="control-circle">🎙️</button>
+                <button id="end-call-btn" class="control-circle reject-red-btn">🤙</button>
+                <button id="toggle-cam-btn" class="control-circle" style="display: none;">📷</button>
             </div>
         </div>
     </div>
 
-    <!-- 💬 Main Chat Box -->
+    <!-- 💬 Interactive Main Dynamic Chat Frame Panel Container -->
     <div id="chat-box" class="chat-container" style="display: none;">
         <div class="chat-header">
-            <h2 id="user-display">💖 Private Chat</h2>
+            <div class="user-meta-info">
+                <h2 id="user-display">💖 Private Space</h2>
+                <span id="partner-status" class="status-indicator offline">offline</span>
+            </div>
             <div class="header-buttons">
-                <button id="call-btn">📞 Call</button>
-                <button id="logout-btn" class="logout-button">🚪 Logout</button>
+                <button id="voice-call-btn" class="header-icon-btn">📞</button>
+                <button id="video-call-btn" class="header-icon-btn">📹</button>
+                <button id="clear-chat-btn" class="header-icon-btn danger-text" title="Clear History">🗑️</button>
+                <button id="logout-btn" class="logout-button">Logout</button>
             </div>
         </div>
         
         <div id="chat-messages" class="chat-messages"></div>
         
-        <div class="video-container" id="video-container" style="display: none;">
-            <video id="localVideo" autoplay playsinline muted></video>
-            <video id="remoteVideo" autoplay playsinline></video>
-        </div>
-
         <div class="chat-input-area">
             <label for="image-input" class="image-label">📷</label>
             <input type="file" id="image-input" accept="image/*" style="display: none;">
-            <input type="text" id="message-input" placeholder="Type a message...">
+            <input type="text" id="message-input" placeholder="Type safe message...">
             <button id="send-btn">Send</button>
         </div>
     </div>
 
-    <!-- 🎵 Audio Elements (Chat & Ringtone) -->
     <audio id="notif-sound" src="https://mixkit.co" preload="auto"></audio>
     <audio id="ringtone-sound" src="https://mixkit.co" loop preload="auto"></audio>
 
