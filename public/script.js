@@ -1,8 +1,6 @@
-const socket = io({
-    transports: ['websocket', 'polling']
-});
+const socket = io({ transports: ['websocket', 'polling'] });
 
-// Elements
+// Document Elements
 const loginBox = document.getElementById('login-box');
 const chatBox = document.getElementById('chat-box');
 const usernameInput = document.getElementById('username');
@@ -10,67 +8,74 @@ const passwordInput = document.getElementById('password');
 const loginButton = document.getElementById('login-btn');
 const loginError = document.getElementById('login-error');
 const logoutButton = document.getElementById('logout-btn');
-
 const messageInput = document.getElementById('message-input');
 const sendButton = document.getElementById('send-btn');
 const chatMessages = document.getElementById('chat-messages');
 const imageInput = document.getElementById('image-input');
 const userDisplay = document.getElementById('user-display');
+const partnerStatus = document.getElementById('partner-status');
+const clearChatButton = document.getElementById('clear-chat-btn');
+
+// Fullscreen Overlays UI Cache Elements
+const callOverlay = document.getElementById('call-overlay');
+const fullscreenCallerTitle = document.getElementById('fullscreen-caller-title');
+const callStatusLabel = document.getElementById('call-status-label');
+const fullscreenVideoGrid = document.getElementById('fullscreen-video-grid');
+const localVideo = document.getElementById('localVideo');
+const remoteVideo = document.getElementById('remoteVideo');
+const toggleMicBtn = document.getElementById('toggle-mic-btn');
+const toggleCamBtn = document.getElementById('toggle-cam-btn');
+const endCallBtn = document.getElementById('end-call-btn');
+
+const voiceCallBtn = document.getElementById('voice-call-btn');
+const videoCallBtn = document.getElementById('video-call-btn');
 const notifSound = document.getElementById('notif-sound');
 const ringtoneSound = document.getElementById('ringtone-sound');
 
-// Calling Elements
-const callButton = document.getElementById('call-btn');
-const videoContainer = document.getElementById('video-container');
-const localVideo = document.getElementById('localVideo');
-const remoteVideo = document.getElementById('remoteVideo');
-const incomingCallModal = document.getElementById('incoming-call-modal');
-const acceptCallBtn = document.getElementById('accept-call-btn');
-const rejectCallBtn = document.getElementById('reject-call-btn');
-const callerNameDisplay = document.getElementById('caller-name');
-
 let currentUsername = "";
-let localStream;
-let peerConnection;
-let savedOfferSignal = null;
+let localStream = null;
+let peerConnection = null;
+let currentCallType = null;
+let callActiveSession = false;
+let isMuted = false;
+let isCamOff = false;
+
 const config = { iceServers: [{ urls: 'stun:://google.com' }] };
 
-// 🔄 Auto Login Session
 window.addEventListener('load', () => {
     const savedUser = localStorage.getItem('chat_username');
-    if (savedUser) {
-        startChatSession(savedUser);
-    }
+    if (savedUser) startChatSession(savedUser);
 });
 
 function startChatSession(user) {
     currentUsername = user;
-    userDisplay.innerText = `💖 Hi ${user}`;
+    userDisplay.innerText = `💖 ${user === 'sanaul' ? 'Sanaul' : 'Partner'}`;
     loginBox.style.display = 'none';
     chatBox.style.display = 'flex';
     socket.emit('register-user', user);
 }
 
-// 🔒 Login
 loginButton.addEventListener('click', () => {
     const user = usernameInput.value.trim().toLowerCase();
     const pass = passwordInput.value.trim();
-
     if ((user === "sanaul" && pass === "love123") || (user === "girlfriend" && pass === "love123")) {
-        localStorage.setItem('chat_username', user); 
+        localStorage.setItem('chat_username', user);
         startChatSession(user);
     } else {
         loginError.style.display = 'block';
     }
 });
 
-// 🚪 Logout
 logoutButton.addEventListener('click', () => {
     localStorage.removeItem('chat_username');
     window.location.reload();
 });
 
-// 📩 Send text
+socket.on('load-history', (history) => {
+    chatMessages.innerHTML = '';
+    history.forEach(data => renderMessageInUI(data));
+});
+
 sendButton.addEventListener('click', () => {
     const message = messageInput.value.trim();
     if (message) {
@@ -83,9 +88,8 @@ messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendButton.click();
 });
 
-// 📷 Send Image
 imageInput.addEventListener('change', (e) => {
-    const file = e.target.files;
+    const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = function(event) {
@@ -93,112 +97,159 @@ imageInput.addEventListener('change', (e) => {
         };
         reader.readAsDataURL(file);
     }
+    imageInput.value = '';
 });
 
-// Receive chat data
+function deleteMsg(msgId) {
+    if(confirm("Delete this message permanently for everyone?")) {
+        socket.emit('delete-message', msgId);
+    }
+}
+
+clearChatButton.addEventListener('click', () => {
+    if(confirm("Are you absolutely sure you want to clear the entire chat history?")) {
+        socket.emit('clear-all-chat');
+    }
+});
+
 socket.on('chat-message', (data) => {
-    const status = (data.sender === currentUsername) ? 'sent' : 'received';
-    const displayName = (data.sender === currentUsername) ? 'You' : data.sender;
-
-    if (data.type === 'text') {
-        appendMessage(displayName, data.text, status);
-    } else if (data.type === 'image') {
-        appendImage(displayName, data.imageData, status);
-    }
-
+    renderMessageInUI(data);
     if (data.sender !== currentUsername) {
-        notifSound.play().catch(e => console.log("Sound block bypass."));
+        notifSound.play().catch(e => {});
     }
 });
 
-function appendMessage(sender, text, status) {
+socket.on('message-deleted', (msgId) => {
+    const el = document.getElementById(msgId);
+    if(el) el.remove();
+});
+
+socket.on('chat-cleared', () => { chatMessages.innerHTML = ''; });
+
+socket.on('update-status', (data) => {
+    let target = (currentUsername === "sanaul") ? "girlfriend" : "sanaul";
+    if (data.username === target) {
+        partnerStatus.className = 'status-indicator ' + (data.online ? 'online' : 'offline');
+        partnerStatus.innerText = data.online ? 'online' : 'offline';
+    }
+});
+
+function renderMessageInUI(data) {
+    const isMe = data.sender === currentUsername;
+    const wrapper = document.createElement('div');
+    wrapper.id = data.id;
+    wrapper.className = `message-bubble-wrapper ${isMe ? 'sent' : 'received'}`;
+    
     const msgDiv = document.createElement('div');
-    msgDiv.classList.add('message', status);
-    msgDiv.innerText = `${sender}: ${text}`;
-    chatMessages.appendChild(msgDiv);
+    msgDiv.className = 'message';
+    if (data.type === 'text') {
+        msgDiv.innerText = `${isMe ? 'You' : data.sender}: ${data.text}`;
+    } else {
+        msgDiv.innerHTML = `<strong>${isMe ? 'You' : data.sender}:</strong><br><img src="${data.imageData}" style="max-width:100%; border-radius:12px; margin-top:5px; display:block;">`;
+    }
+    wrapper.appendChild(msgDiv);
+    
+    const delBtn = document.createElement('button');
+    delBtn.className = 'delete-msg-btn';
+    delBtn.innerText = 'Delete 🗑️';
+    delBtn.onclick = () => deleteMsg(data.id);
+    wrapper.appendChild(delBtn);
+
+    chatMessages.appendChild(wrapper);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-function appendImage(sender, src, status) {
-    const msgDiv = document.createElement('div');
-    msgDiv.classList.add('message', status);
-    msgDiv.innerHTML = `<strong>${sender}:</strong><br><img src="${src}" style="max-width:200px; border-radius:10px; margin-top:5px;">`;
-    chatMessages.appendChild(msgDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+// 📞 Voice & Video Call Trigger Management
+voiceCallBtn.addEventListener('click', () => triggerOutgoingCall('voice'));
+videoCallBtn.addEventListener('click', () => triggerOutgoingCall('video'));
+
+async function triggerOutgoingCall(type) {
+    currentCallType = type;
+    callOverlay.style.display = 'flex';
+    fullscreenCallerTitle.innerText = "Calling Partner...";
+    callStatusLabel.innerText = `Outgoing ${type} call...`;
+    
+    if(type === 'video') {
+        fullscreenVideoGrid.style.display = 'block';
+        toggleCamBtn.style.display = 'flex';
+    } else {
+        fullscreenVideoGrid.style.display = 'none';
+        toggleCamBtn.style.display = 'none';
+    }
+    endCallBtn.className = "control-circle reject-red-btn";
+
+    await startMediaTracks(type);
+    peerConnection = new RTCPeerConnection(config);
+    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+    peerConnection.onicecandidate = (e) => {
+        if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, candidate: e.candidate });
+    };
+    peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams[0]; };
+
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    socket.emit('webrtc-signal', { sender: currentUsername, offer: offer, callType: type });
+    ringtoneSound.play().catch(e => {});
 }
 
-// 📞 WebRTC Video Call Core Logic
-async function initWebRTC(isCaller) {
+async function startMediaTracks(type) {
     try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
         localVideo.srcObject = localStream;
-        videoContainer.style.display = 'grid';
+    } catch(e) {
+        alert("Permissions access error! Please check browser media access permissions.");
+        terminateCallEngine();
+    }
+}
 
+socket.on('webrtc-signal', async (data) => {
+    if (data.offer) {
+        currentCallType = data.callType;
+        callOverlay.style.display = 'flex';
+        fullscreenCallerTitle.innerText = data.sender.toUpperCase();
+        callStatusLabel.innerText = `Incoming ${data.callType} call...`;
+        endCallBtn.className = "control-circle active-green";
+        ringtoneSound.play().catch(e => {});
+        window.incomingOfferDetails = data.offer;
+    } else if (data.answer) {
+        ringtoneSound.pause(); ringtoneSound.currentTime = 0;
+        callStatusLabel.innerText = "Connected";
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        callActiveSession = true;
+    } else if (data.candidate) {
+        try { if(peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(e){}
+    }
+});
+
+endCallBtn.addEventListener('click', async () => {
+    if (!callActiveSession && endCallBtn.classList.contains('active-green')) {
+        endCallBtn.className = "control-circle reject-red-btn";
+        ringtoneSound.pause(); ringtoneSound.currentTime = 0;
+        callStatusLabel.innerText = "Connecting...";
+
+        if(currentCallType === 'video') {
+            fullscreenVideoGrid.style.display = 'block';
+            toggleCamBtn.style.display = 'flex';
+        }
+        await startMediaTracks(currentCallType);
         peerConnection = new RTCPeerConnection(config);
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
         peerConnection.onicecandidate = (e) => {
             if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, candidate: e.candidate });
         };
+        peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams[0]; };
 
-        peerConnection.ontrack = (e) => {
-            remoteVideo.srcObject = e.streams;
-        };
-
-        if (isCaller) {
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            socket.emit('webrtc-signal', { sender: currentUsername, offer: offer });
-        }
-    } catch (err) {
-        alert("Camera & Mic settings allow karna mandatory hai!");
-    }
-}
-
-callButton.addEventListener('click', () => {
-    initWebRTC(true);
-});
-
-// Incoming Call Signal Handling (With Custom Display Alert Modal)
-socket.on('webrtc-signal', async (data) => {
-    if (data.offer) {
-        savedOfferSignal = data.offer;
-        callerNameDisplay.innerText = `${data.sender.toUpperCase()} is video calling you...`;
-        incomingCallModal.style.display = 'flex'; // Custom Pop-up display show karein
-        ringtoneSound.play().catch(e => console.log("Ringtone interactive delay."));
-    } else if (data.answer) {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-    } else if (data.candidate) {
-        try {
-            if (peerConnection) {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-            }
-        } catch (e) {
-            console.error(e);
-        }
-    }
-});
-
-// Accept Button Click Logic
-acceptCallBtn.addEventListener('click', async () => {
-    incomingCallModal.style.display = 'none';
-    ringtoneSound.pause();
-    ringtoneSound.currentTime = 0;
-    
-    if (savedOfferSignal) {
-        await initWebRTC(false);
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(savedOfferSignal));
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOfferDetails));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
         socket.emit('webrtc-signal', { sender: currentUsername, answer: answer });
+        callStatusLabel.innerText = "Connected";
+        callActiveSession = true;
+    } else {
+        socket.emit('call-ended', { sender: currentUsername });
+        terminateCallEngine();
     }
 });
 
-// Reject Button Click Logic
-rejectCallBtn.addEventListener('click', () => {
-    incomingCallModal.style.display = 'none';
-    ringtoneSound.pause();
-    ringtoneSound.currentTime = 0;
-    savedOfferSignal = null;
-    socket.emit('chat-message', { type: 'text', sender: currentUsername, text: '🚫 Call Declined/Missed' });
-});
