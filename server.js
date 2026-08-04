@@ -4,7 +4,7 @@ const http = require('http').createServer(app);
 
 const io = require('socket.io')(http, {
     cors: { origin: "*", methods: ["GET", "POST"] },
-    maxHttpBufferSize: 50e6,
+    maxHttpBufferSize: 50e6, // 50MB tak ki images safely allow hain
     transports: ['websocket', 'polling']
 });
 
@@ -16,17 +16,22 @@ let chatHistory = [];
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
-    // Pehle se saved history load karna
+    // Refresh hone par purani chat dikhane ke liye
     socket.emit('load-history', chatHistory);
 
     socket.on('register-user', (username) => {
         onlineUsers[username] = socket.id;
         io.emit('update-status', { username, online: true });
+        // Jab naya user aaye toh sabhi ko online status update jaye
+        for(let user in onlineUsers) {
+            io.emit('update-status', { username: user, online: true });
+        }
     });
 
     socket.on('chat-message', (data) => {
         data.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
         chatHistory.push(data);
+        // Instant delivery ke liye io.emit ka use (bina refresh ke message dikhega)
         io.emit('chat-message', data);
     });
 
