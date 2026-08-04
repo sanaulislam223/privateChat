@@ -72,7 +72,6 @@ loginButton.addEventListener('click', () => {
     const user = usernameInput.value.trim().toLowerCase();
     const pass = passwordInput.value.trim();
     
-    // Credentials matching condition block
     if ((user === "sanaul" && pass === "love123") || (user === "girlfriend" && pass === "love123")) {
         localStorage.setItem('chat_username', user);
         startChatSession(user);
@@ -87,7 +86,7 @@ logoutButton.addEventListener('click', () => {
     window.location.reload();
 });
 
-// 📩 4. Chat Management System
+// 📩 4. Chat History & Message Management
 socket.on('load-history', (history) => {
     chatMessages.innerHTML = '';
     history.forEach(data => renderMessageInUI(data));
@@ -106,7 +105,7 @@ messageInput.addEventListener('keypress', (e) => {
 });
 
 imageInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files;
     if (file) {
         const reader = new FileReader();
         reader.onload = function(event) {
@@ -124,7 +123,7 @@ liveCameraBtn.addEventListener('click', async () => {
         captureStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
         captureWebcam.srcObject = captureStream;
     } catch(err) {
-        alert("Camera permission block! Please allow browser camera tracking rules.");
+        alert("Camera permission block! Please allow browser camera access.");
         cameraCaptureZone.style.display = 'none';
     }
 });
@@ -187,7 +186,7 @@ socket.on('update-status', (data) => {
     }
 });
 
-// 💾 6. Message Bubble View Layout Framework with High-Speed Download Trigger link wrapper
+// 💾 6. Message Bubble Rendering Layer (With Download Link)
 function renderMessageInUI(data) {
     const isMe = data.sender === currentUsername;
     const wrapper = document.createElement('div');
@@ -245,7 +244,7 @@ async function triggerOutgoingCall(type) {
     peerConnection.onicecandidate = (e) => {
         if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, candidate: e.candidate });
     };
-    peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams[0]; };
+    peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams; };
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
@@ -255,3 +254,6 @@ async function triggerOutgoingCall(type) {
 
 async function startMediaTracks(type) {
     try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
+        localVideo.srcObject = localStream;
+    } catch(e) {
