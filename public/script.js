@@ -257,3 +257,84 @@ async function startMediaTracks(type) {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
         localVideo.srcObject = localStream;
     } catch(e) {
+                alert("Permissions Access Error! Please turn on browser media access settings.");
+        terminateCallEngine();
+    }
+}
+
+socket.on('webrtc-signal', async (data) => {
+    if (data.offer) {
+        currentCallType = data.callType;
+        callOverlay.style.display = 'flex';
+        fullscreenCallerTitle.innerText = data.sender.toUpperCase();
+        callStatusLabel.innerText = `Incoming ${data.callType} call...`;
+        endCallBtn.className = "control-circle active-green";
+        ringtoneSound.play().catch(e => {});
+        window.incomingOfferDetails = data.offer;
+    } else if (data.answer) {
+        ringtoneSound.pause(); ringtoneSound.currentTime = 0;
+        callStatusLabel.innerText = "Connected";
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        callActiveSession = true;
+    } else if (data.candidate) {
+        try { if(peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(e){}
+    }
+});
+
+endCallBtn.addEventListener('click', async () => {
+    if (!callActiveSession && endCallBtn.classList.contains('active-green')) {
+        endCallBtn.className = "control-circle reject-red-btn";
+        ringtoneSound.pause(); ringtoneSound.currentTime = 0;
+        callStatusLabel.innerText = "Connecting...";
+
+        if(currentCallType === 'video') {
+            fullscreenVideoGrid.style.display = 'block';
+            toggleCamBtn.style.display = 'flex';
+        }
+        await startMediaTracks(currentCallType);
+        peerConnection = new RTCPeerConnection(config);
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+        peerConnection.onicecandidate = (e) => {
+            if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, candidate: e.candidate });
+        };
+        peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams; };
+
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOfferDetails));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        socket.emit('webrtc-signal', { sender: currentUsername, answer: answer });
+        callStatusLabel.innerText = "Connected";
+        callActiveSession = true;
+    } else {
+        socket.emit('call-ended', { sender: currentUsername });
+        terminateCallEngine();
+    }
+});
+
+socket.on('call-ended', () => { terminateCallEngine(); });
+
+function terminateCallEngine() {
+    ringtoneSound.pause(); ringtoneSound.currentTime = 0;
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+    if (peerConnection) { peerConnection.close(); peerConnection = null; }
+    callActiveSession = false;
+    callOverlay.style.display = 'none';
+}
+
+toggleMicBtn.addEventListener('click', () => {
+    if(localStream) {
+        isMuted = !isMuted; localStream.getAudioTracks().enabled = !isMuted;
+        toggleMicBtn.className = `control-circle ${isMuted ? 'muted-state' : ''}`;
+    }
+});
+toggleCamBtn.addEventListener('click', () => {
+    if(localStream && currentCallType === 'video') {
+        isCamOff = !isCamOff; localStream.getVideoTracks().enabled = !isCamOff;
+        toggleCamBtn.className = `control-circle ${isCamOff ? 'muted-state' : ''}`;
+    }
+});
+
