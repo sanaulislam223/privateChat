@@ -1,6 +1,6 @@
 const socket = io({ transports: ['websocket', 'polling'] });
 
-// Document Elements
+// UI Cache Elements
 const loginBox = document.getElementById('login-box');
 const chatBox = document.getElementById('chat-box');
 const usernameInput = document.getElementById('username');
@@ -24,7 +24,7 @@ const snapPhotoBtn = document.getElementById('snap-photo-btn');
 const closeCaptureBtn = document.getElementById('close-capture-btn');
 const captureCanvas = document.getElementById('capture-canvas');
 
-// Overlays UI Cache Elements
+// Overlays UI Elements
 const callOverlay = document.getElementById('call-overlay');
 const fullscreenCallerTitle = document.getElementById('fullscreen-caller-title');
 const callStatusLabel = document.getElementById('call-status-label');
@@ -51,12 +51,10 @@ let isCamOff = false;
 
 const config = { iceServers: [{ urls: 'stun:://google.com' }] };
 
-// 🔄 1. Auto Login Persistence Session Layer
+// Auto Login Session Loader
 window.addEventListener('load', () => {
     const savedUser = localStorage.getItem('chat_username');
-    if (savedUser) {
-        startChatSession(savedUser);
-    }
+    if (savedUser) startChatSession(savedUser);
 });
 
 function startChatSession(user) {
@@ -67,11 +65,10 @@ function startChatSession(user) {
     socket.emit('register-user', user);
 }
 
-// 🔒 2. Fixed Login Verification Logic
+// Login
 loginButton.addEventListener('click', () => {
     const user = usernameInput.value.trim().toLowerCase();
     const pass = passwordInput.value.trim();
-    
     if ((user === "sanaul" && pass === "love123") || (user === "girlfriend" && pass === "love123")) {
         localStorage.setItem('chat_username', user);
         startChatSession(user);
@@ -80,18 +77,19 @@ loginButton.addEventListener('click', () => {
     }
 });
 
-// 🚪 3. Safe Session Clear Logout
+// Logout
 logoutButton.addEventListener('click', () => {
     localStorage.removeItem('chat_username');
     window.location.reload();
 });
 
-// 📩 4. Chat History & Message Management
+// Load Saved Chat History Channel
 socket.on('load-history', (history) => {
     chatMessages.innerHTML = '';
     history.forEach(data => renderMessageInUI(data));
 });
 
+// Instant Message Send Trigger
 sendButton.addEventListener('click', () => {
     const message = messageInput.value.trim();
     if (message) {
@@ -104,8 +102,9 @@ messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendButton.click();
 });
 
+// Gallery Image File Transfer Block
 imageInput.addEventListener('change', (e) => {
-    const file = e.target.files;
+    const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = function(event) {
@@ -116,14 +115,14 @@ imageInput.addEventListener('change', (e) => {
     imageInput.value = '';
 });
 
-// 📸 5. Live Present Camera Capture Stream Block
+// Live Instant Photo Click Engine Layout
 liveCameraBtn.addEventListener('click', async () => {
     try {
         cameraCaptureZone.style.display = 'block';
         captureStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
         captureWebcam.srcObject = captureStream;
     } catch(err) {
-        alert("Camera permission block! Please allow browser camera access.");
+        alert("Camera permission required!");
         cameraCaptureZone.style.display = 'none';
     }
 });
@@ -137,7 +136,6 @@ snapPhotoBtn.addEventListener('click', () => {
         
         const dataUrl = captureCanvas.toDataURL('image/jpeg', 0.7);
         socket.emit('chat-message', { type: 'image', sender: currentUsername, imageData: dataUrl });
-        
         stopCaptureEngine();
     }
 });
@@ -153,17 +151,18 @@ function stopCaptureEngine() {
 }
 
 function deleteMsg(msgId) {
-    if(confirm("Delete this message permanently for everyone?")) {
+    if(confirm("Delete this message for everyone permanently?")) {
         socket.emit('delete-message', msgId);
     }
 }
 
 clearChatButton.addEventListener('click', () => {
-    if(confirm("Are you absolutely sure you want to clear the entire chat history?")) {
+    if(confirm("Are you sure you want to clear all timeline chat history?")) {
         socket.emit('clear-all-chat');
     }
 });
 
+// REAL-TIME INCOMING MESSAGE DISPATCHER (Refresh ka jhanjhat khatam)
 socket.on('chat-message', (data) => {
     renderMessageInUI(data);
     if (data.sender !== currentUsername) {
@@ -186,7 +185,7 @@ socket.on('update-status', (data) => {
     }
 });
 
-// 💾 6. Message Bubble Rendering Layer (With Download Link)
+// Render UI Components (With High-Speed Save/Download Link Wrapper)
 function renderMessageInUI(data) {
     const isMe = data.sender === currentUsername;
     const wrapper = document.createElement('div');
@@ -200,9 +199,9 @@ function renderMessageInUI(data) {
     } else {
         msgDiv.innerHTML = `
             <strong>${isMe ? 'You' : 'Partner'}:</strong><br>
-            <a href="${data.imageData}" download="shared_photo_${Date.now()}.jpg" title="Click to Download Image" style="display:block; text-decoration:none; cursor:pointer;">
-                <img src="${data.imageData}" style="max-width:100%; border-radius:12px; margin-top:5px; display:block; border: 2px dashed rgba(255,75,110,0.2);">
-                <span style="font-size:0.75rem; display:block; color:#ff4b6e; text-align:right; margin-top:3px; font-weight:bold;">⬇️ Tap to Save Image</span>
+            <a href="${data.imageData}" download="private_shared_${Date.now()}.jpg" title="Click to Save Image" style="display:block; text-decoration:none;">
+                <img src="${data.imageData}" style="max-width:100%; border-radius:12px; margin-top:5px; display:block;">
+                <span style="font-size:0.72rem; display:block; color:#ff4b6e; text-align:right; margin-top:3px; font-weight:bold;">⬇️ Tap to Save Image</span>
             </a>
         `;
     }
@@ -218,7 +217,7 @@ function renderMessageInUI(data) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// 📞 7. WhatsApp Style Call Trigger Management Engine Flow
+// 📞 WhatsApp Engine Controller Block
 voiceCallBtn.addEventListener('click', () => triggerOutgoingCall('voice'));
 videoCallBtn.addEventListener('click', () => triggerOutgoingCall('video'));
 
@@ -244,7 +243,7 @@ async function triggerOutgoingCall(type) {
     peerConnection.onicecandidate = (e) => {
         if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, candidate: e.candidate });
     };
-    peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams; };
+    peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams[0]; };
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
@@ -257,11 +256,10 @@ async function startMediaTracks(type) {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
         localVideo.srcObject = localStream;
     } catch(e) {
-                alert("Permissions Access Error! Please turn on browser media access settings.");
+        alert("Permissions access error!");
         terminateCallEngine();
     }
 }
-
 socket.on('webrtc-signal', async (data) => {
     if (data.offer) {
         currentCallType = data.callType;
