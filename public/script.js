@@ -51,9 +51,12 @@ let isCamOff = false;
 
 const config = { iceServers: [{ urls: 'stun:://google.com' }] };
 
+// 🔄 1. Auto Login Persistence Session Layer
 window.addEventListener('load', () => {
     const savedUser = localStorage.getItem('chat_username');
-    if (savedUser) startChatSession(savedUser);
+    if (savedUser) {
+        startChatSession(savedUser);
+    }
 });
 
 function startChatSession(user) {
@@ -64,9 +67,12 @@ function startChatSession(user) {
     socket.emit('register-user', user);
 }
 
+// 🔒 2. Fixed Login Verification Logic
 loginButton.addEventListener('click', () => {
     const user = usernameInput.value.trim().toLowerCase();
     const pass = passwordInput.value.trim();
+    
+    // Credentials matching condition block
     if ((user === "sanaul" && pass === "love123") || (user === "girlfriend" && pass === "love123")) {
         localStorage.setItem('chat_username', user);
         startChatSession(user);
@@ -75,11 +81,13 @@ loginButton.addEventListener('click', () => {
     }
 });
 
+// 🚪 3. Safe Session Clear Logout
 logoutButton.addEventListener('click', () => {
     localStorage.removeItem('chat_username');
     window.location.reload();
 });
 
+// 📩 4. Chat Management System
 socket.on('load-history', (history) => {
     chatMessages.innerHTML = '';
     history.forEach(data => renderMessageInUI(data));
@@ -109,13 +117,14 @@ imageInput.addEventListener('change', (e) => {
     imageInput.value = '';
 });
 
+// 📸 5. Live Present Camera Capture Stream Block
 liveCameraBtn.addEventListener('click', async () => {
     try {
         cameraCaptureZone.style.display = 'block';
         captureStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
         captureWebcam.srcObject = captureStream;
     } catch(err) {
-        alert("Camera permission block. Please allow browser camera access.");
+        alert("Camera permission block! Please allow browser camera tracking rules.");
         cameraCaptureZone.style.display = 'none';
     }
 });
@@ -178,7 +187,7 @@ socket.on('update-status', (data) => {
     }
 });
 
-// FIX: Image Save/Download System Integration Layer
+// 💾 6. Message Bubble View Layout Framework with High-Speed Download Trigger link wrapper
 function renderMessageInUI(data) {
     const isMe = data.sender === currentUsername;
     const wrapper = document.createElement('div');
@@ -190,12 +199,11 @@ function renderMessageInUI(data) {
     if (data.type === 'text') {
         msgDiv.innerText = `${isMe ? 'You' : 'Partner'}: ${data.text}`;
     } else {
-        // Image bubble link tag wrapper with automatic high-speed download attributes
         msgDiv.innerHTML = `
             <strong>${isMe ? 'You' : 'Partner'}:</strong><br>
-            <a href="${data.imageData}" download="private_shared_photo.jpg" title="Click to Save Image" style="display:block; text-decoration:none; cursor:pointer;">
+            <a href="${data.imageData}" download="shared_photo_${Date.now()}.jpg" title="Click to Download Image" style="display:block; text-decoration:none; cursor:pointer;">
                 <img src="${data.imageData}" style="max-width:100%; border-radius:12px; margin-top:5px; display:block; border: 2px dashed rgba(255,75,110,0.2);">
-                <span style="font-size:0.75rem; display:block; color:#ff4b6e; text-align:right; margin-top:3px; font-weight:bold;">⬇️ Tap to Save</span>
+                <span style="font-size:0.75rem; display:block; color:#ff4b6e; text-align:right; margin-top:3px; font-weight:bold;">⬇️ Tap to Save Image</span>
             </a>
         `;
     }
@@ -211,7 +219,7 @@ function renderMessageInUI(data) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// 📞 Voice & Video Call Trigger Engine
+// 📞 7. WhatsApp Style Call Trigger Management Engine Flow
 voiceCallBtn.addEventListener('click', () => triggerOutgoingCall('voice'));
 videoCallBtn.addEventListener('click', () => triggerOutgoingCall('video'));
 
@@ -237,7 +245,7 @@ async function triggerOutgoingCall(type) {
     peerConnection.onicecandidate = (e) => {
         if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, candidate: e.candidate });
     };
-    peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams; };
+    peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams[0]; };
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
@@ -247,14 +255,3 @@ async function triggerOutgoingCall(type) {
 
 async function startMediaTracks(type) {
     try {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
-        localVideo.srcObject = localStream;
-    } catch(e) {
-        alert("Permissions access error!");
-        terminateCallEngine();
-    }
-}
-
-socket.on('webrtc-signal', async (data) => {
-    if (data.offer) {
-        currentCallType = data.callType;
