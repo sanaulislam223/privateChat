@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- 🔒 Security Login Box Frame -->
+    <!-- 🔒 Security Login Box -->
     <div id="login-box" class="login-container">
         <h2>💖 Private Space Lock</h2>
         <p>Enter credentials to access private chat room.</p>
@@ -17,7 +17,7 @@
         <p id="login-error" style="color: red; display: none; margin-top: 10px;">Invalid Details!</p>
     </div>
 
-    <!-- 📞 Fullscreen Call Window Overlays -->
+    <!-- 📞 Fullscreen Call Window Overlays (WhatsApp Style) -->
     <div id="call-overlay" class="call-overlay" style="display: none;">
         <div class="call-background"></div>
         <div class="call-content-ui">
@@ -27,7 +27,7 @@
                 <p id="call-status-label">Ringing...</p>
             </div>
             
-            <!-- Video Grid Window -->
+            <!-- Fullscreen Video Display Grid -->
             <div id="fullscreen-video-grid" class="fullscreen-video-grid" style="display: none;">
                 <video id="remoteVideo" autoplay playsinline></video>
                 <video id="localVideo" autoplay playsinline muted class="pip-local-video"></video>
@@ -37,12 +37,12 @@
             <div class="call-controls-tray">
                 <button id="toggle-mic-btn" class="control-circle">🎙️</button>
                 <button id="end-call-btn" class="control-circle reject-red-btn">🤙</button>
-                <button id="toggle-cam-btn" class="control-circle" style="display: none;">📷</button>
+                <button id="toggle-cam-btn" class="control-circle" style="display: none;">📹</button>
             </div>
         </div>
     </div>
 
-    <!-- 💬 Main Chat Box -->
+    <!-- 💬 Main Dynamic Chat Window Frame -->
     <div id="chat-box" class="chat-container" style="display: none;">
         <div class="chat-header">
             <div class="user-meta-info">
@@ -59,9 +59,24 @@
         
         <div id="chat-messages" class="chat-messages"></div>
         
+        <!-- Live Instant Camera Capture Tray -->
+        <div id="camera-capture-zone" style="display: none; padding: 10px; background: #222; text-align: center;">
+            <video id="capture-webcam" autoplay playsinline style="width: 100%; max-height: 250px; border-radius: 12px; object-fit: cover;"></video>
+            <div style="margin-top: 8px; display: flex; justify-content: center; gap: 15px;">
+                <button id="snap-photo-btn" style="background: #2ecc71; border: none; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer;">📸 Capture</button>
+                <button id="close-capture-btn" style="background: #e74c3c; border: none; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer;">Cancel</button>
+            </div>
+            <canvas id="capture-canvas" style="display: none;"></canvas>
+        </div>
+        
         <div class="chat-input-area">
-            <label for="image-input" class="image-label">📷</label>
+            <!-- Gallery Button -->
+            <label for="image-input" class="image-label" title="Choose from Gallery">📁</label>
             <input type="file" id="image-input" accept="image/*" style="display: none;">
+            
+            <!-- Live Camera Button -->
+            <span id="live-camera-btn" class="image-label" style="cursor: pointer;" title="Click Present Photo">📸</span>
+            
             <input type="text" id="message-input" placeholder="Type safe message...">
             <button id="send-btn">Send</button>
         </div>
