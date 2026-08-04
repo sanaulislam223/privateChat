@@ -16,7 +16,7 @@ const userDisplay = document.getElementById('user-display');
 const partnerStatus = document.getElementById('partner-status');
 const clearChatButton = document.getElementById('clear-chat-btn');
 
-// Fullscreen Overlays UI Elements
+// Overlays UI Elements
 const callOverlay = document.getElementById('call-overlay');
 const fullscreenCallerTitle = document.getElementById('fullscreen-caller-title');
 const callStatusLabel = document.getElementById('call-status-label');
@@ -42,6 +42,7 @@ let isCamOff = false;
 
 const config = { iceServers: [{ urls: 'stun:://google.com' }] };
 
+// 🔄 Auto Login Check
 window.addEventListener('load', () => {
     const savedUser = localStorage.getItem('chat_username');
     if (savedUser) startChatSession(savedUser);
@@ -55,6 +56,7 @@ function startChatSession(user) {
     socket.emit('register-user', user);
 }
 
+// 🔒 Login Trigger Fix
 loginButton.addEventListener('click', () => {
     const user = usernameInput.value.trim().toLowerCase();
     const pass = passwordInput.value.trim();
@@ -143,9 +145,9 @@ function renderMessageInUI(data) {
     const msgDiv = document.createElement('div');
     msgDiv.className = 'message';
     if (data.type === 'text') {
-        msgDiv.innerText = `${isMe ? 'You' : data.sender}: ${data.text}`;
+        msgDiv.innerText = `${isMe ? 'You' : 'Partner'}: ${data.text}`;
     } else {
-        msgDiv.innerHTML = `<strong>${isMe ? 'You' : data.sender}:</strong><br><img src="${data.imageData}" style="max-width:100%; border-radius:12px; margin-top:5px; display:block;">`;
+        msgDiv.innerHTML = `<strong>${isMe ? 'You' : 'Partner'}:</strong><br><img src="${data.imageData}" style="max-width:100%; border-radius:12px; margin-top:5px; display:block;">`;
     }
     wrapper.appendChild(msgDiv);
     
@@ -159,7 +161,7 @@ function renderMessageInUI(data) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// 📞 Voice & Video Call Trigger Management
+// 📞 Voice & Video Call Trigger
 voiceCallBtn.addEventListener('click', () => triggerOutgoingCall('voice'));
 videoCallBtn.addEventListener('click', () => triggerOutgoingCall('video'));
 
@@ -198,7 +200,7 @@ async function startMediaTracks(type) {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
         localVideo.srcObject = localStream;
     } catch(e) {
-        alert("Permissions access error! Please check browser media access permissions.");
+        alert("Permissions access error!");
         terminateCallEngine();
     }
 }
@@ -209,7 +211,7 @@ socket.on('webrtc-signal', async (data) => {
         callOverlay.style.display = 'flex';
         fullscreenCallerTitle.innerText = data.sender.toUpperCase();
         callStatusLabel.innerText = `Incoming ${data.callType} call...`;
-        endCallBtn.className = "control-circle active-green"; // Receive karne ke liye green button
+        endCallBtn.className = "control-circle active-green";
         ringtoneSound.play().catch(e => {});
         window.incomingOfferDetails = data.offer;
     } else if (data.answer) {
@@ -222,10 +224,8 @@ socket.on('webrtc-signal', async (data) => {
     }
 });
 
-// FIX: Call Cut karne aur receive karne ka solid fix
 endCallBtn.addEventListener('click', async () => {
     if (!callActiveSession && endCallBtn.classList.contains('active-green')) {
-        // Agar call aa rahi hai aur green dabaya toh connect karein
         endCallBtn.className = "control-circle reject-red-btn";
         ringtoneSound.pause(); ringtoneSound.currentTime = 0;
         callStatusLabel.innerText = "Connecting...";
@@ -249,3 +249,11 @@ endCallBtn.addEventListener('click', async () => {
         socket.emit('webrtc-signal', { sender: currentUsername, answer: answer });
         callStatusLabel.innerText = "Connected";
         callActiveSession = true;
+    } else {
+        socket.emit('call-ended', { sender: currentUsername });
+        terminateCallEngine();
+    }
+});
+
+socket.on('call-ended', () => { terminateCallEngine(); });
+
