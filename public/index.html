@@ -7,33 +7,40 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- 🔒 Security Login Box -->
+    <!-- 🔒 Security Login Box Frame -->
     <div id="login-box" class="login-container">
-        <h2>💖 Private Space Lock</h2>
-        <p>Enter credentials to access private chat room.</p>
-        <input type="text" id="username" placeholder="Username">
-        <input type="password" id="password" placeholder="Password">
-        <button id="login-btn">Unlock Space</button>
-        <p id="login-error" style="color: red; display: none; margin-top: 10px;">Invalid Details!</p>
+        <h2>💖 Private Room Setup</h2>
+        <p>Enter any Username to create your space.</p>
+        <input type="text" id="username" placeholder="Enter Your Name">
+        <input type="password" id="password" placeholder="Password (Use: love123)">
+        <button id="login-btn">Login / Register</button>
+        <p id="login-error" style="color: red; display: none; margin-top: 10px;">Incorrect Password!</p>
     </div>
 
-    <!-- 📞 Fullscreen Call Window Overlays (WhatsApp Style) -->
+    <!-- 👥 Dashboard / Contact List Container -->
+    <div id="dashboard-box" class="chat-container" style="display: none;">
+        <div class="chat-header">
+            <h2>👥 Active Users</h2>
+            <button id="dash-logout-btn" class="logout-button">Logout</button>
+        </div>
+        <div id="user-list-container" class="chat-messages" style="padding: 20px;">
+            <!-- Online users name lists automatic add ho jayenge -->
+        </div>
+    </div>
+
+    <!-- 📞 Fullscreen Call Window Overlays -->
     <div id="call-overlay" class="call-overlay" style="display: none;">
         <div class="call-background"></div>
         <div class="call-content-ui">
             <div class="caller-avatar-zone">
                 <div class="pulse-avatar">💖</div>
-                <h2 id="fullscreen-caller-title">Partner Name</h2>
+                <h2 id="fullscreen-caller-title">Partner</h2>
                 <p id="call-status-label">Ringing...</p>
             </div>
-            
-            <!-- Fullscreen Video Display Grid -->
             <div id="fullscreen-video-grid" class="fullscreen-video-grid" style="display: none;">
                 <video id="remoteVideo" autoplay playsinline></video>
                 <video id="localVideo" autoplay playsinline muted class="pip-local-video"></video>
             </div>
-
-            <!-- Call Tray Controls -->
             <div class="call-controls-tray">
                 <button id="toggle-mic-btn" class="control-circle">🎙️</button>
                 <button id="end-call-btn" class="control-circle reject-red-btn">🤙</button>
@@ -42,18 +49,16 @@
         </div>
     </div>
 
-    <!-- 💬 Main Dynamic Chat Window Frame -->
+    <!-- 💬 Main Private Chat Box Frame Panel -->
     <div id="chat-box" class="chat-container" style="display: none;">
         <div class="chat-header">
             <div class="user-meta-info">
-                <h2 id="user-display">💖 Private Space</h2>
-                <span id="partner-status" class="status-indicator offline">offline</span>
+                <button id="back-to-dash-btn" style="background:transparent; border:none; color:white; font-size:1.2rem; cursor:pointer; margin-right:10px;">⬅️</button>
+                <h2 id="user-display">💖 Personal Room</h2>
             </div>
             <div class="header-buttons">
                 <button id="voice-call-btn" class="header-icon-btn">📞</button>
                 <button id="video-call-btn" class="header-icon-btn">📹</button>
-                <button id="clear-chat-btn" class="header-icon-btn danger-text" title="Clear History">🗑️</button>
-                <button id="logout-btn" class="logout-button">Logout</button>
             </div>
         </div>
         
@@ -70,14 +75,10 @@
         </div>
         
         <div class="chat-input-area">
-            <!-- Gallery Button -->
-            <label for="image-input" class="image-label" title="Choose from Gallery">📁</label>
+            <label for="image-input" class="image-label" title="Gallery">📁</label>
             <input type="file" id="image-input" accept="image/*" style="display: none;">
-            
-            <!-- Live Camera Button -->
-            <span id="live-camera-btn" class="image-label" style="cursor: pointer;" title="Click Present Photo">📸</span>
-            
-            <input type="text" id="message-input" placeholder="Type safe message...">
+            <span id="live-camera-btn" class="image-label" style="cursor: pointer;">📸</span>
+            <input type="text" id="message-input" placeholder="Type private message...">
             <button id="send-btn">Send</button>
         </div>
     </div>
