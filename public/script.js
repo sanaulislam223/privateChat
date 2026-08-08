@@ -1,22 +1,27 @@
 const socket = io({ transports: ['websocket', 'polling'] });
 
-// UI Cache Elements
+// UI Panels
 const loginBox = document.getElementById('login-box');
+const dashboardBox = document.getElementById('dashboard-box');
 const chatBox = document.getElementById('chat-box');
+const userListContainer = document.getElementById('user-list-container');
+
+// Auth inputs
 const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
 const loginButton = document.getElementById('login-btn');
 const loginError = document.getElementById('login-error');
-const logoutButton = document.getElementById('logout-btn');
+const logoutButton = document.getElementById('dash-logout-btn');
+const backToDashBtn = document.getElementById('back-to-dash-btn');
+
+// Chat row elements
 const messageInput = document.getElementById('message-input');
 const sendButton = document.getElementById('send-btn');
 const chatMessages = document.getElementById('chat-messages');
 const imageInput = document.getElementById('image-input');
 const userDisplay = document.getElementById('user-display');
-const partnerStatus = document.getElementById('partner-status');
-const clearChatButton = document.getElementById('clear-chat-btn');
 
-// Live Capture UI Elements
+// Camera & Calls UI Cache Elements
 const liveCameraBtn = document.getElementById('live-camera-btn');
 const cameraCaptureZone = document.getElementById('camera-capture-zone');
 const captureWebcam = document.getElementById('capture-webcam');
@@ -24,7 +29,6 @@ const snapPhotoBtn = document.getElementById('snap-photo-btn');
 const closeCaptureBtn = document.getElementById('close-capture-btn');
 const captureCanvas = document.getElementById('capture-canvas');
 
-// Overlays UI Elements
 const callOverlay = document.getElementById('call-overlay');
 const fullscreenCallerTitle = document.getElementById('fullscreen-caller-title');
 const callStatusLabel = document.getElementById('call-status-label');
@@ -34,13 +38,13 @@ const remoteVideo = document.getElementById('remoteVideo');
 const toggleMicBtn = document.getElementById('toggle-mic-btn');
 const toggleCamBtn = document.getElementById('toggle-cam-btn');
 const endCallBtn = document.getElementById('end-call-btn');
-
 const voiceCallBtn = document.getElementById('voice-call-btn');
 const videoCallBtn = document.getElementById('video-call-btn');
 const notifSound = document.getElementById('notif-sound');
 const ringtoneSound = document.getElementById('ringtone-sound');
 
 let currentUsername = "";
+let activeReceiver = ""; // Kisse chat chal rahi h
 let localStream = null;
 let captureStream = null;
 let peerConnection = null;
@@ -51,49 +55,77 @@ let isCamOff = false;
 
 const config = { iceServers: [{ urls: 'stun:://google.com' }] };
 
-// Auto Login Session Loader
 window.addEventListener('load', () => {
     const savedUser = localStorage.getItem('chat_username');
-    if (savedUser) startChatSession(savedUser);
+    if (savedUser) startDashboardSession(savedUser);
 });
 
-function startChatSession(user) {
+function startDashboardSession(user) {
     currentUsername = user;
-    userDisplay.innerText = `💖 ${user === 'sanaul' ? 'Sanaul' : 'Partner'}`;
     loginBox.style.display = 'none';
-    chatBox.style.display = 'flex';
+    chatBox.style.display = 'none';
+    dashboardBox.style.display = 'flex';
     socket.emit('register-user', user);
 }
 
-// Login
 loginButton.addEventListener('click', () => {
     const user = usernameInput.value.trim().toLowerCase();
     const pass = passwordInput.value.trim();
-    if ((user === "sanaul" && pass === "love123") || (user === "girlfriend" && pass === "love123")) {
+    if (user && pass === "love123") { // Sabhi ke liye common setup pass
         localStorage.setItem('chat_username', user);
-        startChatSession(user);
+        startDashboardSession(user);
     } else {
         loginError.style.display = 'block';
     }
 });
 
-// Logout
 logoutButton.addEventListener('click', () => {
     localStorage.removeItem('chat_username');
     window.location.reload();
 });
 
-// Load Saved Chat History Channel
+backToDashBtn.addEventListener('click', () => {
+    activeReceiver = "";
+    chatBox.style.display = 'none';
+    dashboardBox.style.display = 'flex';
+});
+
+// Dynamic Active Contact List Update System 🔄
+socket.on('update-user-list', (users) => {
+    userListContainer.innerHTML = '';
+    users.forEach(user => {
+        if(user !== currentUsername) {
+            const row = document.createElement('div');
+            row.style.background = '#fff';
+            row.style.padding = '15px';
+            row.style.marginBottom = '10px';
+            row.style.borderRadius = '12px';
+            row.style.cursor = 'pointer';
+            row.style.fontWeight = 'bold';
+            row.style.boxShadow = '0 2px 5px rgba(0,0,0,0.05)';
+            row.innerText = `💬 Chat with: ${user.toUpperCase()}`;
+            
+            row.onclick = () => {
+                activeReceiver = user;
+                dashboardBox.style.display = 'none';
+                chatBox.style.display = 'flex';
+                userDisplay.innerText = `💖 ${user.toUpperCase()}`;
+                socket.emit('get-chat-history', { sender: currentUsername, receiver: activeReceiver });
+            };
+            userListContainer.appendChild(row);
+        }
+    });
+});
+
 socket.on('load-history', (history) => {
     chatMessages.innerHTML = '';
     history.forEach(data => renderMessageInUI(data));
 });
 
-// Instant Message Send Trigger
 sendButton.addEventListener('click', () => {
     const message = messageInput.value.trim();
-    if (message) {
-        socket.emit('chat-message', { type: 'text', sender: currentUsername, text: message });
+    if (message && activeReceiver) {
+        socket.emit('private-message', { type: 'text', sender: currentUsername, receiver: activeReceiver, text: message });
         messageInput.value = '';
     }
 });
@@ -102,40 +134,37 @@ messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendButton.click();
 });
 
-// Gallery Image File Transfer Block
 imageInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
+    const file = e.target.files;
+    if (file && activeReceiver) {
         const reader = new FileReader();
         reader.onload = function(event) {
-            socket.emit('chat-message', { type: 'image', sender: currentUsername, imageData: event.target.result });
+            socket.emit('private-message', { type: 'image', sender: currentUsername, receiver: activeReceiver, imageData: event.target.result });
         };
         reader.readAsDataURL(file);
     }
     imageInput.value = '';
 });
 
-// Live Instant Photo Click Engine Layout
 liveCameraBtn.addEventListener('click', async () => {
     try {
         cameraCaptureZone.style.display = 'block';
         captureStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
         captureWebcam.srcObject = captureStream;
     } catch(err) {
-        alert("Camera permission required!");
+        alert("Camera permission block!");
         cameraCaptureZone.style.display = 'none';
     }
 });
 
 snapPhotoBtn.addEventListener('click', () => {
-    if (captureStream) {
+    if (captureStream && activeReceiver) {
         const context = captureCanvas.getContext('2d');
         captureCanvas.width = captureWebcam.videoWidth || 640;
         captureCanvas.height = captureWebcam.videoHeight || 480;
         context.drawImage(captureWebcam, 0, 0, captureCanvas.width, captureCanvas.height);
-        
         const dataUrl = captureCanvas.toDataURL('image/jpeg', 0.7);
-        socket.emit('chat-message', { type: 'image', sender: currentUsername, imageData: dataUrl });
+        socket.emit('private-message', { type: 'image', sender: currentUsername, receiver: activeReceiver, imageData: dataUrl });
         stopCaptureEngine();
     }
 });
@@ -151,23 +180,16 @@ function stopCaptureEngine() {
 }
 
 function deleteMsg(msgId) {
-    if(confirm("Delete this message for everyone permanently?")) {
-        socket.emit('delete-message', msgId);
+    if(confirm("Delete message for everyone permanently?")) {
+        socket.emit('delete-message', { msgId, sender: currentUsername, receiver: activeReceiver });
     }
 }
 
-clearChatButton.addEventListener('click', () => {
-    if(confirm("Are you sure you want to clear all timeline chat history?")) {
-        socket.emit('clear-all-chat');
-    }
-});
-
-// REAL-TIME INCOMING MESSAGE DISPATCHER (Refresh ka jhanjhat khatam)
 socket.on('chat-message', (data) => {
-    renderMessageInUI(data);
-    if (data.sender !== currentUsername) {
-        notifSound.play().catch(e => {});
+    if((data.sender === currentUsername && data.receiver === activeReceiver) || (data.sender === activeReceiver && data.receiver === currentUsername)) {
+        renderMessageInUI(data);
     }
+    if (data.sender !== currentUsername) notifSound.play().catch(e => {});
 });
 
 socket.on('message-deleted', (msgId) => {
@@ -175,17 +197,6 @@ socket.on('message-deleted', (msgId) => {
     if(el) el.remove();
 });
 
-socket.on('chat-cleared', () => { chatMessages.innerHTML = ''; });
-
-socket.on('update-status', (data) => {
-    let target = (currentUsername === "sanaul") ? "girlfriend" : "sanaul";
-    if (data.username === target) {
-        partnerStatus.className = 'status-indicator ' + (data.online ? 'online' : 'offline');
-        partnerStatus.innerText = data.online ? 'online' : 'offline';
-    }
-});
-
-// Render UI Components (With High-Speed Save/Download Link Wrapper)
 function renderMessageInUI(data) {
     const isMe = data.sender === currentUsername;
     const wrapper = document.createElement('div');
@@ -195,11 +206,11 @@ function renderMessageInUI(data) {
     const msgDiv = document.createElement('div');
     msgDiv.className = 'message';
     if (data.type === 'text') {
-        msgDiv.innerText = `${isMe ? 'You' : 'Partner'}: ${data.text}`;
+        msgDiv.innerText = `${isMe ? 'You' : data.sender.toUpperCase()}: ${data.text}`;
     } else {
         msgDiv.innerHTML = `
-            <strong>${isMe ? 'You' : 'Partner'}:</strong><br>
-            <a href="${data.imageData}" download="private_shared_${Date.now()}.jpg" title="Click to Save Image" style="display:block; text-decoration:none;">
+            <strong>${isMe ? 'You' : data.sender.toUpperCase()}:</strong><br>
+            <a href="${data.imageData}" download="shared_photo_${Date.now()}.jpg" style="display:block; text-decoration:none;">
                 <img src="${data.imageData}" style="max-width:100%; border-radius:12px; margin-top:5px; display:block;">
                 <span style="font-size:0.72rem; display:block; color:#ff4b6e; text-align:right; margin-top:3px; font-weight:bold;">⬇️ Tap to Save Image</span>
             </a>
@@ -217,14 +228,15 @@ function renderMessageInUI(data) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// 📞 WhatsApp Engine Controller Block
+// 📞 WhatsApp One-to-One Dynamic Voice & Video Calling Engine Block
 voiceCallBtn.addEventListener('click', () => triggerOutgoingCall('voice'));
 videoCallBtn.addEventListener('click', () => triggerOutgoingCall('video'));
 
 async function triggerOutgoingCall(type) {
+    if(!activeReceiver) return;
     currentCallType = type;
     callOverlay.style.display = 'flex';
-    fullscreenCallerTitle.innerText = "Calling Partner...";
+    fullscreenCallerTitle.innerText = `Calling ${activeReceiver.toUpperCase()}...`;
     callStatusLabel.innerText = `Outgoing ${type} call...`;
     
     if(type === 'video') {
@@ -238,17 +250,18 @@ async function triggerOutgoingCall(type) {
 
     await startMediaTracks(type);
     peerConnection = new RTCPeerConnection(config);
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-    peerConnection.onicecandidate = (e) => {
-        if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, candidate: e.candidate });
-    };
-    peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams[0]; };
+        peerConnection.onicecandidate = (e) => {
+            if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, receiver: activeReceiver, candidate: e.candidate });
+        };
+        peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams; };
 
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
-    socket.emit('webrtc-signal', { sender: currentUsername, offer: offer, callType: type });
-    ringtoneSound.play().catch(e => {});
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        socket.emit('webrtc-signal', { sender: currentUsername, receiver: activeReceiver, offer: offer, callType: type });
+        ringtoneSound.play().catch(e => {});
+    }
 }
 
 async function startMediaTracks(type) {
@@ -260,8 +273,10 @@ async function startMediaTracks(type) {
         terminateCallEngine();
     }
 }
+
 socket.on('webrtc-signal', async (data) => {
     if (data.offer) {
+        activeReceiver = data.sender; 
         currentCallType = data.callType;
         callOverlay.style.display = 'flex';
         fullscreenCallerTitle.innerText = data.sender.toUpperCase();
@@ -294,18 +309,18 @@ endCallBtn.addEventListener('click', async () => {
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
         peerConnection.onicecandidate = (e) => {
-            if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, candidate: e.candidate });
+            if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, receiver: activeReceiver, candidate: e.candidate });
         };
         peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams; };
 
         await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOfferDetails));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
-        socket.emit('webrtc-signal', { sender: currentUsername, answer: answer });
+        socket.emit('webrtc-signal', { sender: currentUsername, receiver: activeReceiver, answer: answer });
         callStatusLabel.innerText = "Connected";
         callActiveSession = true;
     } else {
-        socket.emit('call-ended', { sender: currentUsername });
+        socket.emit('call-ended', { sender: currentUsername, receiver: activeReceiver });
         terminateCallEngine();
     }
 });
