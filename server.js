@@ -4,72 +4,68 @@ const http = require('http').createServer(app);
 
 const io = require('socket.io')(http, {
     cors: { origin: "*", methods: ["GET", "POST"] },
-    maxHttpBufferSize: 50e6, // 50MB tak ki images safely allow hain
+    maxHttpBufferSize: 50e6, // 50MB image capacity size buffer rule
     transports: ['websocket', 'polling']
 });
 
 app.use(express.static('public'));
 
-let onlineUsers = {};
-let chatHistory = []; 
+let onlineUsers = {}; // { username: socketId }
+let personalChats = {}; // { "user1-user2": [ messages ] }
 
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
-    // Refresh hone par purani chat dikhane ke liye
-    socket.emit('load-history', chatHistory);
-
     socket.on('register-user', (username) => {
         onlineUsers[username] = socket.id;
-        io.emit('update-status', { username, online: true });
-        // Jab naya user aaye toh sabhi ko online status update jaye
-        for(let user in onlineUsers) {
-            io.emit('update-status', { username: user, online: true });
+        io.emit('update-user-list', Object.keys(onlineUsers));
+    });
+
+    socket.on('get-chat-history', ({ sender, receiver }) => {
+        const room = [sender, receiver].sort().join('-');
+        const history = personalChats[room] || [];
+        socket.emit('load-history', history);
+    });
+
+    socket.on('private-message', (data) => {
+        const room = [data.sender, data.receiver].sort().join('-');
+        if (!personalChats[room]) personalChats[room] = [];
+        
+        data.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+        personalChats[room].push(data);
+
+        socket.emit('chat-message', data);
+        const receiverSocketId = onlineUsers[data.receiver];
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit('chat-message', data);
         }
     });
 
-    socket.on('chat-message', (data) => {
-        data.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-        chatHistory.push(data);
-        // Instant delivery ke liye io.emit ka use (bina refresh ke message dikhega)
-        io.emit('chat-message', data);
-    });
-
-    socket.on('delete-message', (msgId) => {
-        chatHistory = chatHistory.filter(msg => msg.id !== msgId);
-        io.emit('message-deleted', msgId);
-    });
-
-    socket.on('clear-all-chat', () => {
-        chatHistory = [];
-        io.emit('chat-cleared');
+    socket.on('delete-message', ({ msgId, sender, receiver }) => {
+        const room = [sender, receiver].sort().join('-');
+        if (personalChats[room]) {
+            personalChats[room] = personalChats[room].filter(msg => msg.id !== msgId);
+        }
+        socket.emit('message-deleted', msgId);
+        const receiverSocketId = onlineUsers[receiver];
+        if (receiverSocketId) io.to(receiverSocketId).emit('message-deleted', msgId);
     });
 
     socket.on('webrtc-signal', (data) => {
-        let targetUser = (data.sender === "sanaul") ? "girlfriend" : "sanaul";
-        let targetSocketId = onlineUsers[targetUser];
-        if (targetSocketId) {
-            io.to(targetSocketId).emit('webrtc-signal', data);
-        } else {
-            socket.broadcast.emit('webrtc-signal', data);
-        }
+        const receiverSocketId = onlineUsers[data.receiver];
+        if (receiverSocketId) io.to(receiverSocketId).emit('webrtc-signal', data);
     });
 
     socket.on('call-ended', (data) => {
-        let targetUser = (data.sender === "sanaul") ? "girlfriend" : "sanaul";
-        let targetSocketId = onlineUsers[targetUser];
-        if (targetSocketId) {
-            io.to(targetSocketId).emit('call-ended', data);
-        } else {
-            socket.broadcast.emit('call-ended', data);
-        }
+        const receiverSocketId = onlineUsers[data.receiver];
+        if (receiverSocketId) io.to(receiverSocketId).emit('call-ended', data);
     });
 
     socket.on('disconnect', () => {
         for (let username in onlineUsers) {
             if (onlineUsers[username] === socket.id) {
-                io.emit('update-status', { username, online: false });
                 delete onlineUsers[username];
+                io.emit('update-user-list', Object.keys(onlineUsers));
                 break;
             }
         }
