@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Our Ultimate Private Space</title>
+    <title>Our Private Space</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- 🔒 Security Login Box Frame -->
     <div id="login-box" class="login-container">
         <h2>💖 Private Room Setup</h2>
         <p>Enter any Username to create your space.</p>
@@ -17,18 +16,14 @@
         <p id="login-error" style="color: red; display: none; margin-top: 10px;">Incorrect Password!</p>
     </div>
 
-    <!-- 👥 Dashboard / Contact List Container -->
     <div id="dashboard-box" class="chat-container" style="display: none;">
         <div class="chat-header">
             <h2>👥 Active Users</h2>
             <button id="dash-logout-btn" class="logout-button">Logout</button>
         </div>
-        <div id="user-list-container" class="chat-messages" style="padding: 20px;">
-            <!-- Online users name lists automatic add ho jayenge -->
-        </div>
+        <div id="user-list-container" class="chat-messages" style="padding: 20px;"></div>
     </div>
 
-    <!-- 📞 Fullscreen Call Window Overlays -->
     <div id="call-overlay" class="call-overlay" style="display: none;">
         <div class="call-background"></div>
         <div class="call-content-ui">
@@ -49,7 +44,6 @@
         </div>
     </div>
 
-    <!-- 💬 Main Private Chat Box Frame Panel -->
     <div id="chat-box" class="chat-container" style="display: none;">
         <div class="chat-header">
             <div class="user-meta-info">
@@ -64,7 +58,6 @@
         
         <div id="chat-messages" class="chat-messages"></div>
         
-        <!-- Live Instant Camera Capture Tray -->
         <div id="camera-capture-zone" style="display: none; padding: 10px; background: #222; text-align: center;">
             <video id="capture-webcam" autoplay playsinline style="width: 100%; max-height: 250px; border-radius: 12px; object-fit: cover;"></video>
             <div style="margin-top: 8px; display: flex; justify-content: center; gap: 15px;">
@@ -85,8 +78,5 @@
 
     <audio id="notif-sound" src="https://mixkit.co" preload="auto"></audio>
     <audio id="ringtone-sound" src="https://mixkit.co" loop preload="auto"></audio>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="script.js"></script>
 </body>
 </html>
