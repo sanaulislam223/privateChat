@@ -1,4 +1,19 @@
-const socket = io({ transports: ['websocket', 'polling'] });
+const express = require('express');
+const app = express();
+const http = require('http').createServer(app);
+
+const io = require('socket.io')(http, {
+    cors: { 
+        origin: "https://onrender.com",
+        methods: ["GET", "POST"],
+        credentials: true
+    },
+    maxHttpBufferSize: 50e6,
+    transports: ['websocket', 'polling']
+});
+
+app.use(express.static('public'));
+
 
 // UI Panels
 const loginBox = document.getElementById('login-box');
