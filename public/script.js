@@ -1,21 +1,27 @@
 const socket = io('https://onrender.com', { transports: ['websocket', 'polling'] });
 
+// UI Panels
 const loginBox = document.getElementById('login-box');
 const dashboardBox = document.getElementById('dashboard-box');
 const chatBox = document.getElementById('chat-box');
 const userListContainer = document.getElementById('user-list-container');
+
+// Auth inputs
 const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
 const loginButton = document.getElementById('login-btn');
 const loginError = document.getElementById('login-error');
 const logoutButton = document.getElementById('dash-logout-btn');
 const backToDashBtn = document.getElementById('back-to-dash-btn');
+
+// Chat row elements
 const messageInput = document.getElementById('message-input');
 const sendButton = document.getElementById('send-btn');
 const chatMessages = document.getElementById('chat-messages');
 const imageInput = document.getElementById('image-input');
 const userDisplay = document.getElementById('user-display');
 
+// Camera & Calls UI Cache Elements
 const liveCameraBtn = document.getElementById('live-camera-btn');
 const cameraCaptureZone = document.getElementById('camera-capture-zone');
 const captureWebcam = document.getElementById('capture-webcam');
@@ -84,13 +90,18 @@ backToDashBtn.addEventListener('click', () => {
     dashboardBox.style.display = 'flex';
 });
 
+// Dynamic Active Contact List Update System 🔄
 socket.on('update-user-list', (users) => {
     userListContainer.innerHTML = '';
     users.forEach(user => {
         if(user !== currentUsername) {
             const row = document.createElement('div');
-            row.style.background = '#fff'; row.style.padding = '15px'; row.style.marginBottom = '10px';
-            row.style.borderRadius = '12px'; row.style.cursor = 'pointer'; row.style.fontWeight = 'bold';
+            row.style.background = '#fff';
+            row.style.padding = '15px';
+            row.style.marginBottom = '10px';
+            row.style.borderRadius = '12px';
+            row.style.cursor = 'pointer';
+            row.style.fontWeight = 'bold';
             row.style.boxShadow = '0 2px 5px rgba(0,0,0,0.05)';
             row.innerText = `💬 Chat with: ${user.toUpperCase()}`;
             
@@ -216,6 +227,7 @@ function renderMessageInUI(data) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+// 📞 Voice & Video Calling Engine Block
 voiceCallBtn.addEventListener('click', () => triggerOutgoingCall('voice'));
 videoCallBtn.addEventListener('click', () => triggerOutgoingCall('video'));
 
@@ -242,6 +254,8 @@ async function triggerOutgoingCall(type) {
     peerConnection.onicecandidate = (e) => {
         if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, receiver: activeReceiver, candidate: e.candidate });
     };
+    peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams; };
+
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
     socket.emit('webrtc-signal', { sender: currentUsername, receiver: activeReceiver, offer: offer, callType: type });
