@@ -3,15 +3,19 @@ const app = express();
 const http = require('http').createServer(app);
 
 const io = require('socket.io')(http, {
-    cors: { origin: "*", methods: ["GET", "POST"] },
-    maxHttpBufferSize: 50e6, // 50MB image capacity size buffer rule
+    cors: { 
+        origin: "https://onrender.com",
+        methods: ["GET", "POST"],
+        credentials: true
+    },
+    maxHttpBufferSize: 50e6,
     transports: ['websocket', 'polling']
 });
 
 app.use(express.static('public'));
 
-let onlineUsers = {}; // { username: socketId }
-let personalChats = {}; // { "user1-user2": [ messages ] }
+let onlineUsers = {};
+let personalChats = {};
 
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
