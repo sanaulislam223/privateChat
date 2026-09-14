@@ -1,27 +1,21 @@
 const socket = io('https://onrender.com', { transports: ['websocket', 'polling'] });
 
-// UI Panels
 const loginBox = document.getElementById('login-box');
 const dashboardBox = document.getElementById('dashboard-box');
 const chatBox = document.getElementById('chat-box');
 const userListContainer = document.getElementById('user-list-container');
-
-// Auth inputs
 const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
 const loginButton = document.getElementById('login-btn');
 const loginError = document.getElementById('login-error');
 const logoutButton = document.getElementById('dash-logout-btn');
 const backToDashBtn = document.getElementById('back-to-dash-btn');
-
-// Chat row elements
 const messageInput = document.getElementById('message-input');
 const sendButton = document.getElementById('send-btn');
 const chatMessages = document.getElementById('chat-messages');
 const imageInput = document.getElementById('image-input');
 const userDisplay = document.getElementById('user-display');
 
-// Camera & Calls UI Cache Elements
 const liveCameraBtn = document.getElementById('live-camera-btn');
 const cameraCaptureZone = document.getElementById('camera-capture-zone');
 const captureWebcam = document.getElementById('capture-webcam');
@@ -90,7 +84,6 @@ backToDashBtn.addEventListener('click', () => {
     dashboardBox.style.display = 'flex';
 });
 
-// Dynamic Active Contact List Update System 🔄
 socket.on('update-user-list', (users) => {
     userListContainer.innerHTML = '';
     users.forEach(user => {
@@ -223,7 +216,6 @@ function renderMessageInUI(data) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// 📞 Voice & Video Calling Engine Block
 voiceCallBtn.addEventListener('click', () => triggerOutgoingCall('voice'));
 videoCallBtn.addEventListener('click', () => triggerOutgoingCall('video'));
 
@@ -250,8 +242,6 @@ async function triggerOutgoingCall(type) {
     peerConnection.onicecandidate = (e) => {
         if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, receiver: activeReceiver, candidate: e.candidate });
     };
-    peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams[0] || e.streams; };
-
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
     socket.emit('webrtc-signal', { sender: currentUsername, receiver: activeReceiver, offer: offer, callType: type });
@@ -305,7 +295,7 @@ endCallBtn.addEventListener('click', async () => {
         peerConnection.onicecandidate = (e) => {
             if (e.candidate) socket.emit('webrtc-signal', { sender: currentUsername, receiver: activeReceiver, candidate: e.candidate });
         };
-        peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams[0] || e.streams; };
+        peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams; };
 
         await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOfferDetails));
         const answer = await peerConnection.createAnswer();
@@ -323,24 +313,15 @@ socket.on('call-ended', () => { terminateCallEngine(); });
 
 function terminateCallEngine() {
     ringtoneSound.pause(); ringtoneSound.currentTime = 0;
-    if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
-    }
+    if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
     if (peerConnection) { peerConnection.close(); peerConnection = null; }
     callActiveSession = false;
     callOverlay.style.display = 'none';
 }
 
 toggleMicBtn.addEventListener('click', () => {
-    if(localStream) {
-        isMuted = !isMuted; localStream.getAudioTracks()[0].enabled = !isMuted;
-        toggleMicBtn.className = `control-circle ${isMuted ? 'muted-state' : ''}`;
-    }
+    if(localStream) { isMuted = !isMuted; localStream.getAudioTracks().enabled = !isMuted; toggleMicBtn.className = `control-circle ${isMuted ? 'muted-state' : ''}`; }
 });
 toggleCamBtn.addEventListener('click', () => {
-    if(localStream && currentCallType === 'video') {
-        isCamOff = !isCamOff; localStream.getVideoTracks()[0].enabled = !isCamOff;
-        toggleCamBtn.className = `control-circle ${isCamOff ? 'muted-state' : ''}`;
-    }
+    if(localStream && currentCallType === 'video') { isCamOff = !isCamOff; localStream.getVideoTracks().enabled = !isCamOff; toggleCamBtn.className = `control-circle ${isCamOff ? 'muted-state' : ''}`; }
 });
